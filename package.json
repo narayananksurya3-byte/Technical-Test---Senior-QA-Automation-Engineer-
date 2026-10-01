@@ -1,0 +1,27 @@
+{
+  "name": "orange-hrm-project",
+  "version": "1.0.0",
+  "description": "OrangeHRM Playwright automation framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:smoke": "npx playwright test --grep @smoke",
+    "test:regression": "npx playwright test --grep @regression",
+    "test:role": "npx playwright test --grep @role",
+    "test:ui": "npx playwright test --project=chromium",
+    "test:headed": "npx playwright test --headed",
+    "report": "npx playwright show-report playwright-report",
+    "lint": "node -e \"require('./config/env').validateEnv(); console.log('env ok')\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.3"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.4"
+  }
+}
