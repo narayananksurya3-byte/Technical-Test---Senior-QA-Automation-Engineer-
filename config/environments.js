@@ -18,8 +18,8 @@ const environments = {
         essPassword: process.env.ESS_PASSWORD,
     },
     stage: {
-        baseURL: process.env.STAGE_BASE_URL,
-        apiURL: process.env.STAGE_API_URL || process.env.STAGE_BASE_URL,
+        baseURL: process.env.STAGE_BASE_URL || process.env.BASE_URL,
+        apiURL: process.env.STAGE_API_URL || process.env.API_URL || process.env.STAGE_BASE_URL || process.env.BASE_URL,
         username: process.env.STAGE_APP_USERNAME || process.env.APP_USERNAME,
         password: process.env.STAGE_APP_PASSWORD || process.env.APP_PASSWORD,
         essUsername: process.env.STAGE_ESS_USERNAME || process.env.ESS_USERNAME,
