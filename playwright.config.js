@@ -1,67 +1,37 @@
 const { defineConfig, devices } = require('@playwright/test');
-const { validateEnv } = require('./config/env');
+const { getConfig } = require('./config/environments');
+const { TIMEOUTS } = require('./config/constants');
 
-require('dotenv').config();
-validateEnv();
+const config = getConfig();
 
 module.exports = defineConfig({
-
     testDir: './tests',
-
-    timeout: 60 * 1000,
-
-    expect: {
-        timeout: 10 * 1000
-    },
-
     fullyParallel: true,
-
-    forbidOnly: !!process.env.CI,
-
-    retries: process.env.CI ? 2 : 1,
-
-    workers: process.env.CI ? 4 : undefined,
-
-    reporter: [
-        ['list'],
-        [
-            'html',
-            {
-                outputFolder: 'playwright-report',
-                open: 'never'
-            }
-        ]
-    ],
-
-    use: {
-
-        baseURL: process.env.BASE_URL,
-
-        headless: true,
-
-        screenshot: 'only-on-failure',
-
-        video: 'retain-on-failure',
-
-        trace: 'retain-on-failure',
-
-        actionTimeout: 15 * 1000,
-
-        navigationTimeout: 30 * 1000,
-
-        ignoreHTTPSErrors: true
+    timeout: TIMEOUTS.test,
+    expect: {
+        timeout: TIMEOUTS.expect,
     },
-
+    use: {
+        baseURL: config.baseURL,
+        actionTimeout: TIMEOUTS.action,
+        navigationTimeout: TIMEOUTS.navigation,
+        screenshot: 'only-on-failure',
+        video: 'retain-on-failure',
+        trace: 'retain-on-failure',
+    },
+    reporter: [
+        ['line'],
+        ['blob', { outputDir: 'blob-report' }],
+        ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ],
+    retries: process.env.CI ? 2 : 0,
+    workers: process.env.CI ? 4 : undefined,
     projects: [
-
         {
             name: 'chromium',
-
             use: {
-                ...devices['Desktop Chrome']
-            }
-        }
-
-    ]
-
+                ...devices['Desktop Chrome'],
+            },
+        },
+    ],
 });

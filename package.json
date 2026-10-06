@@ -8,10 +8,12 @@
     "test:smoke": "npx playwright test --grep @smoke",
     "test:regression": "npx playwright test --grep @regression",
     "test:role": "npx playwright test --grep @role",
+    "test:api": "npx playwright test --grep @api",
+    "test:flaky": "npx playwright test --repeat-each=3 --retries=0 --grep @smoke",
     "test:ui": "npx playwright test --project=chromium",
     "test:headed": "npx playwright test --headed",
     "report": "npx playwright show-report playwright-report",
-    "lint": "node -e \"require('./config/env').validateEnv(); console.log('env ok')\""
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -19,7 +21,8 @@
   "type": "commonjs",
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@types/node": "^26.6.3"
+    "@types/node": "^26.6.3",
+    "eslint": "^10.12.0"
   },
   "dependencies": {
     "dotenv": "^18.0.4"

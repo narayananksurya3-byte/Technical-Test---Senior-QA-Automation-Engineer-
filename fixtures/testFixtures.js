@@ -1,99 +1,84 @@
-const base =
-    require('@playwright/test');
+const base = require('@playwright/test');
+const { env } = require('../config/env');
+const { EmployeeApi } = require('../api/EmployeeApi');
+const { EmployeePage } = require('../pages/EmployeePage');
+const { AdminUserPage } = require('../pages/AdminUserPage');
+const { LoginPage } = require('../pages/LoginPage');
+const { employeeData, userData } = require('../utils/testData');
+const { ROUTES } = require('../config/constants');
 
-const {
-    LoginPage
-} = require('../pages/LoginPage');
-
-const {
-    EmployeePage
-} = require('../pages/EmployeePage');
-
-const {
-    createEmployee
-} = require('../utils/testData');
-
-const {
-    env
-} = require('../config/env');
-
-
-const test =
-    base.test.extend({
-
-        loggedInPage: async (
-            { page },
-            use
-        ) => {
-
-            const loginPage =
-                new LoginPage(page);
-
+const test = base.test.extend({
+    workerStorageState: [async ({ browser }, use) => {
+        const context = await browser.newContext({
+            baseURL: env.baseUrl,
+            storageState: { cookies: [], origins: [] },
+        });
+        try {
+            await context.clearCookies();
+            const page = await context.newPage();
+            const loginPage = new LoginPage(page);
             await loginPage.open();
+            await loginPage.login(env.username, env.password);
+            await use(await context.storageState());
+        } finally {
+            await context.close();
+        }
+    }, { scope: 'worker' }],
 
-            await loginPage.login(
-                env.username,
-                env.password
-            );
+    storageState: async ({ workerStorageState }, use) => {
+        await use(workerStorageState);
+    },
 
-            await use(page);
+    loggedInPage: async ({ page }, use) => {
+        await page.goto(ROUTES.dashboard, { waitUntil: 'commit' });
+        await base.expect(page).toHaveURL(/dashboard/);
+        await base.expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+        await use(page);
+    },
 
-        },
+    employeePage: async ({ loggedInPage }, use) => {
+        const employeePage = new EmployeePage(loggedInPage);
+        await use(employeePage);
+    },
 
+    employeeApi: async ({ loggedInPage }, use) => {
+        await use(new EmployeeApi(loggedInPage.request));
+    },
 
-        employeePage: async (
-            { loggedInPage },
-            use
-        ) => {
+    adminUserPage: async ({ loggedInPage }, use) => {
+        await use(new AdminUserPage(loggedInPage));
+    },
 
-            const employeePage =
-                new EmployeePage(
-                    loggedInPage
-                );
+    createdEmployee: async ({ employeeApi }, use) => {
+        const data = employeeData();
+        const created = await employeeApi.createEmployee({
+            firstName: data.firstName,
+            lastName: data.lastName,
+        });
 
-            await use(
-                employeePage
-            );
+        const employeeId = created?.data?.empNumber;
 
-        },
-
-
-        createdEmployee: async (
-            { employeePage },
-            use
-        ) => {
-
-            const employee =
-                createEmployee();
-
-            await employeePage.createEmployee(
-                employee
-            );
-
-            await use(employee);
-
-            // Cleanup after test
-            try {
-
-                await employeePage.deleteEmployee(
-                    employee
-                );
-
-            } catch (error) {
-
-                console.log(
-                    'Cleanup failed:',
-                    error.message
-                );
-
-            }
-
+        if (!employeeId) {
+            throw new Error(`Employee creation did not return an employee number. Response: ${JSON.stringify(created)}`);
         }
 
-    });
+        const lifecycle = { id: employeeId, ...data, deletedByTest: false };
+        await use(lifecycle);
 
+        if (!lifecycle.deletedByTest) {
+            await employeeApi.deleteEmployee(lifecycle.id);
+        }
+    },
+
+    createdEssUser: async ({ adminUserPage, createdEmployee }, use) => {
+        const user = userData('ESS');
+        await adminUserPage.createEssUser(createdEmployee, user);
+        await use(user);
+        await adminUserPage.deleteUser(user.username);
+    },
+});
 
 module.exports = {
     test,
-    expect: base.expect
+    expect: base.expect,
 };

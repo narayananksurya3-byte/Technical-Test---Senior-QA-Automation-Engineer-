@@ -1,27 +1,32 @@
-function createEmployee() {
+const crypto = require('crypto');
 
-    const uniqueId =
-        Date.now();
+function uniqueId(prefix = 'auto') {
+    return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+function employeeData() {
+    const id = uniqueId('emp');
 
     return {
-
         firstName: 'Auto',
+        middleName: 'Test',
+        lastName: id,
+        updatedLastName: `${id}-updated`,
+    };
+}
 
-        lastName:
-            `Employee${uniqueId}`,
+function userData(role = 'ESS') {
+    const id = uniqueId('user');
 
-        employeeId:
-            `EMP${uniqueId}`,
-
-        username:
-            `qauser${uniqueId}`,
-
-        password:
-            `Test@${uniqueId}`
-
+    return {
+        username: id,
+        password: `Test@${crypto.randomUUID().slice(0, 10)}1`,
+        role,
     };
 }
 
 module.exports = {
-    createEmployee
+    uniqueId,
+    employeeData,
+    userData,
 };

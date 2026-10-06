@@ -3,23 +3,13 @@ const {
     expect
 } = require('../fixtures/testFixtures');
 
-const {
-    EmployeeApi
-} = require('../api/EmployeeApi');
-
-
 test(
     'Employee should be available through API @api @regression',
     async ({
         employeePage,
+        employeeApi,
         createdEmployee
     }) => {
-
-        const api =
-            new EmployeeApi(
-                employeePage.page
-            );
-
         await employeePage.searchEmployee(
             createdEmployee
         );
@@ -33,18 +23,11 @@ test(
             )
         ).toBeVisible();
 
-        const employeeFromApi =
-            await api.findEmployeeByLastName(
-                createdEmployee.lastName
-            );
+        const employeeFromApi = await employeeApi.getEmployee(createdEmployee.id);
 
         expect(employeeFromApi).not.toBeNull();
-        expect(employeeFromApi.lastName).toBe(
+        expect(employeeFromApi.data.lastName).toBe(
             createdEmployee.lastName
-        );
-
-        console.log(
-            `Employee ${createdEmployee.lastName} verified via API.`
         );
 
     }

@@ -1,5 +1,6 @@
 const { expect } =
     require('@playwright/test');
+const { ROUTES } = require('../config/constants');
 
 class LoginPage {
 
@@ -17,14 +18,17 @@ class LoginPage {
             page.getByRole('button', {
                 name: 'Login'
             });
+        this.dashboardHeading = page.getByRole('heading', { name: 'Dashboard' });
 
     }
 
     async open() {
 
         await this.page.goto(
-            '/web/index.php/auth/login'
+            ROUTES.login,
+            { waitUntil: 'commit' }
         );
+        await expect(this.username).toBeVisible();
 
     }
 
@@ -39,6 +43,7 @@ class LoginPage {
         await expect(this.page).toHaveURL(
             /dashboard/
         );
+        await expect(this.dashboardHeading).toBeVisible();
 
     }
 

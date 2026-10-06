@@ -1,66 +1,80 @@
-const { expect } = require('@playwright/test');
 const { env } = require('../config/env');
+const { ROUTES } = require('../config/constants');
 
 class EmployeeApi {
-
-    constructor(page) {
-
-        this.page = page;
-        this.baseUrl = env.baseUrl || 'https://opensource-demo.orangehrmlive.com';
-
+    constructor(request) {
+        this.request = request;
+        this.baseURL = env.apiUrl;
     }
 
-    async listEmployees() {
-
-        const response = await this.page.request.get(
-            `${this.baseUrl}/web/index.php/api/v2/pim/employees?limit=50&offset=0`
+    async createEmployee(data) {
+        const response = await this.request.post(
+            `${this.baseURL}${ROUTES.employeeCollection}`,
+            { data }
         );
 
-        expect(response.status()).toBe(200);
+        if (!response.ok()) {
+            throw new Error(`Create employee failed: ${response.status()} ${await response.text()}`);
+        }
 
-        return response;
+        return response.json();
     }
 
-    async getEmployee(employeeNumber) {
-
-        const response = await this.page.request.get(
-            `${this.baseUrl}/web/index.php/api/v2/pim/employees/${employeeNumber}`
+    async getEmployee(id) {
+        const response = await this.request.get(
+            `${this.baseURL}${ROUTES.employee(id)}`
         );
 
-        return response;
+        if (response.status() === 404) {
+            return null;
+        }
 
+        if (response.status() === 422) {
+            const body = await response.json();
+            if (body?.error?.data?.invalidParamKeys?.includes('empNumber')) {
+                return null;
+            }
+            throw new Error(`Get employee ${id} failed: ${response.status()} ${JSON.stringify(body)}`);
+        }
+
+        if (!response.ok()) {
+            throw new Error(`Get employee ${id} failed: ${response.status()} ${await response.text()}`);
+        }
+
+        return response.json();
     }
 
-    async findEmployeeByLastName(lastName) {
-
-        const response = await this.listEmployees();
-        const employeeList = await response.json();
-
-        const match = employeeList?.data?.find(
-            employee => employee.lastName === lastName
+    async updateEmployee(id, data) {
+        const response = await this.request.put(
+            `${this.baseURL}${ROUTES.employee(id)}`,
+            { data }
         );
 
-        return match || null;
+        if (!response.ok()) {
+            throw new Error(`Update employee ${id} failed: ${response.status()} ${await response.text()}`);
+        }
 
+        return response.json();
     }
 
     async deleteEmployee(employeeNumber) {
-
-        return await this.page.request.delete(
-            `${this.baseUrl}/web/index.php/api/v2/pim/employees`,
+        const response = await this.request.delete(
+            `${this.baseURL}${ROUTES.employeeCollection}`,
             {
                 data: {
-                    ids: [
-                        Number(employeeNumber)
-                    ]
-                }
+                    ids: [Number(employeeNumber)],
+                },
             }
         );
 
-    }
+        if (![200, 204].includes(response.status())) {
+            throw new Error(`Delete employee ${employeeNumber} failed: ${response.status()} ${await response.text()}`);
+        }
 
+        return response;
+    }
 }
 
 module.exports = {
-    EmployeeApi
+    EmployeeApi,
 };

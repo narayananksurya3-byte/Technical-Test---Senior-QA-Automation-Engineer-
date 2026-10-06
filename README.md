@@ -30,7 +30,7 @@ This project is a Playwright-based automation suite for OrangeHRM that validates
 
 ## Setup
 
-1. Install Node.js 20+
+1. Install Node.js 20.19+
 2. Install dependencies:
 
 ```bash
@@ -84,6 +84,31 @@ Run only tagged tests:
 npx playwright test --grep "@smoke"
 ```
 
+Run API tests or repeat smoke tests to detect flakes:
+
+```bash
+npm run test:api
+npm run test:flaky
+```
+
+Lint the JavaScript project:
+
+```bash
+npm run lint
+```
+
+`TEST_ENV` supports `qa`, `demo`, and `stage`. `qa` and `demo` use `BASE_URL`,
+`APP_USERNAME`, and `APP_PASSWORD`. `stage` uses `STAGE_BASE_URL` and the
+optional `STAGE_APP_USERNAME` / `STAGE_APP_PASSWORD` overrides (falling back
+to the common credentials when omitted). The `API_URL` override is optional.
+The staging variables are also available in `.env.example`.
+
+The role-validation test creates an employee and an ESS user, checks that the
+restricted user cannot access PIM, then deletes the user and employee through
+the suite teardown. Admin authentication is initialized once per worker and
+reused through Playwright `storageState`; tests still receive isolated browser
+contexts.
+
 ## CI/CD pipeline
 
 GitHub Actions is configured in `.github/workflows/playwright.yml`.
@@ -93,7 +118,8 @@ The pipeline performs the following:
 - installs dependencies
 - installs Playwright browsers
 - runs test execution
-- generates HTML reports
+- produces Playwright blob reports per shard and merges them into one HTML report
+- repeats smoke tests three times without retries to expose intermittent failures
 - uploads screenshots, traces, and videos as artifacts
 - uses environment secrets for credentials
 
@@ -145,7 +171,8 @@ More details: see `docs/flaky-test-strategy.md`.
 
 ## Performance testing with k6
 
-The `k6/` folder contains basic performance tests for login and employee creation.
+The `k6/` folder contains performance tests that authenticate with the OrangeHRM
+CSRF token, validate successful responses, and clean up created employees.
 
 Run a k6 script:
 

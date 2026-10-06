@@ -1,32 +1,20 @@
-require('dotenv').config();
+const { getConfig } = require('./environments');
 
+const config = getConfig();
 const env = {
-    baseUrl: process.env.BASE_URL,
-    username: process.env.APP_USERNAME,
-    password: process.env.APP_PASSWORD,
-    testEnv: process.env.TEST_ENV || 'qa'
+    baseUrl: config.baseURL,
+    apiUrl: config.apiURL,
+    username: config.username,
+    password: config.password,
+    testEnv: config.env,
 };
 
 function validateEnv() {
-
-    const required = [
-        'BASE_URL',
-        'APP_USERNAME',
-        'APP_PASSWORD'
-    ];
-
-    const missing = required.filter(
-        variable => !process.env[variable]
-    );
-
-    if (missing.length > 0) {
-        throw new Error(
-            `Missing environment variables: ${missing.join(', ')}`
-        );
-    }
+    getConfig();
 }
 
 module.exports = {
     env,
-    validateEnv
+    getConfig,
+    validateEnv,
 };

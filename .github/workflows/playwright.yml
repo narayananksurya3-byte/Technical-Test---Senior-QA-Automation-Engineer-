@@ -3,30 +3,39 @@ name: Playwright Tests
 on:
   push:
     branches: [main]
-
   pull_request:
     branches: [main]
-
   workflow_dispatch:
+    inputs:
+      test_env:
+        description: Environment to test
+        required: true
+        type: choice
+        options:
+          - demo
+          - qa
+          - stage
+        default: demo
 
 jobs:
-
   test:
-    name: Playwright Tests
+    name: Playwright shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2]
-
     env:
+      TEST_ENV: ${{ inputs.test_env || vars.TEST_ENV || 'demo' }}
       BASE_URL: ${{ secrets.BASE_URL }}
+      API_URL: ${{ secrets.API_URL }}
       APP_USERNAME: ${{ secrets.APP_USERNAME }}
       APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
-      TEST_ENV: ${{ secrets.TEST_ENV }}
-
+      STAGE_BASE_URL: ${{ secrets.STAGE_BASE_URL }}
+      STAGE_API_URL: ${{ secrets.STAGE_API_URL }}
+      STAGE_APP_USERNAME: ${{ secrets.STAGE_APP_USERNAME }}
+      STAGE_APP_PASSWORD: ${{ secrets.STAGE_APP_PASSWORD }}
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -42,15 +51,16 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests
+      - name: Run Playwright shard
         run: npx playwright test --shard=${{ matrix.shard }}/2
 
-      - name: Upload Playwright report
+      - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.shard }}
-          path: playwright-report/
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Upload test results
@@ -59,4 +69,80 @@ jobs:
         with:
           name: test-results-${{ matrix.shard }}
           path: test-results/
+          if-no-files-found: warn
           retention-days: 7
+
+  merge-reports:
+    name: Merge Playwright reports
+    if: always()
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      TEST_ENV: ${{ inputs.test_env || vars.TEST_ENV || 'demo' }}
+      BASE_URL: ${{ secrets.BASE_URL }}
+      APP_USERNAME: ${{ secrets.APP_USERNAME }}
+      APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+      STAGE_BASE_URL: ${{ secrets.STAGE_BASE_URL }}
+      STAGE_APP_USERNAME: ${{ secrets.STAGE_APP_USERNAME }}
+      STAGE_APP_PASSWORD: ${{ secrets.STAGE_APP_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: blob-report
+          merge-multiple: true
+
+      - name: Merge reports
+        run: npx playwright merge-reports --reporter html ./blob-report
+
+      - name: Upload merged HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+  flaky-detection:
+    name: Smoke flake detection
+    runs-on: ubuntu-latest
+    env:
+      TEST_ENV: ${{ inputs.test_env || vars.TEST_ENV || 'demo' }}
+      BASE_URL: ${{ secrets.BASE_URL }}
+      APP_USERNAME: ${{ secrets.APP_USERNAME }}
+      APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+      STAGE_BASE_URL: ${{ secrets.STAGE_BASE_URL }}
+      STAGE_APP_USERNAME: ${{ secrets.STAGE_APP_USERNAME }}
+      STAGE_APP_PASSWORD: ${{ secrets.STAGE_APP_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Repeat smoke tests to detect flakes
+        run: npm run test:flaky
