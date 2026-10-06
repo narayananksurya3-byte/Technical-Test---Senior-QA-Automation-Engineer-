@@ -27,10 +27,10 @@ jobs:
         shard: [1, 2]
     env:
       TEST_ENV: ${{ inputs.test_env || vars.TEST_ENV || 'demo' }}
-      BASE_URL: ${{ secrets.BASE_URL }}
-      API_URL: ${{ secrets.API_URL }}
-      APP_USERNAME: ${{ secrets.APP_USERNAME }}
-      APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+      BASE_URL: ${{ secrets.BASE_URL || secrets.STAGE_BASE_URL }}
+      API_URL: ${{ secrets.API_URL || secrets.STAGE_API_URL }}
+      APP_USERNAME: ${{ secrets.APP_USERNAME || secrets.STAGE_APP_USERNAME }}
+      APP_PASSWORD: ${{ secrets.APP_PASSWORD || secrets.STAGE_APP_PASSWORD }}
       STAGE_BASE_URL: ${{ secrets.STAGE_BASE_URL }}
       STAGE_API_URL: ${{ secrets.STAGE_API_URL }}
       STAGE_APP_USERNAME: ${{ secrets.STAGE_APP_USERNAME }}
@@ -72,7 +72,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-    merge-reports:
+  merge-reports:
     name: Merge Playwright reports
     if: always()
     needs: test
@@ -132,10 +132,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TEST_ENV: ${{ inputs.test_env || vars.TEST_ENV || 'demo' }}
-      BASE_URL: ${{ secrets.BASE_URL }}
-      APP_USERNAME: ${{ secrets.APP_USERNAME }}
-      APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+      BASE_URL: ${{ secrets.BASE_URL || secrets.STAGE_BASE_URL }}
+      API_URL: ${{ secrets.API_URL || secrets.STAGE_API_URL }}
+      APP_USERNAME: ${{ secrets.APP_USERNAME || secrets.STAGE_APP_USERNAME }}
+      APP_PASSWORD: ${{ secrets.APP_PASSWORD || secrets.STAGE_APP_PASSWORD }}
       STAGE_BASE_URL: ${{ secrets.STAGE_BASE_URL }}
+      STAGE_API_URL: ${{ secrets.STAGE_API_URL }}
       STAGE_APP_USERNAME: ${{ secrets.STAGE_APP_USERNAME }}
       STAGE_APP_PASSWORD: ${{ secrets.STAGE_APP_PASSWORD }}
     steps:
